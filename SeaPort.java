@@ -1,25 +1,28 @@
 
 /**
  * File Name: SeaPort.java
- * Date Due: 3/25/2018
+ * Date Due: 4/22/2018
  * Author: Michelle DeCaire
  * Purpose: To represent its segment of the world
  * it holds list of docks,  ships, persons and que. 
  * It is responsible for  most searches since it owns the list.
  * PROJECT TWO ADDITIONS: added multiple sorting features for each arrayList
+ * PROJECT THREE ADDITIONS: added node classes 
  */
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Scanner;
+import java.util.concurrent.CopyOnWriteArrayList;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class SeaPort extends Thing {
-	ArrayList<Dock> docks = new ArrayList<Dock>();
-	ArrayList<Ship> que = new ArrayList<Ship>();
+	CopyOnWriteArrayList<Dock> docks = new CopyOnWriteArrayList<Dock>();
+	CopyOnWriteArrayList<Ship> que = new CopyOnWriteArrayList<Ship>();
 	ArrayList<Ship> ships = new ArrayList<Ship>();
 	ArrayList<Person> persons = new ArrayList<Person>();
-
-	SeaPort(String name, Scanner sc) {
-		super(name, sc);
+	
+	SeaPort(String name, int index, Scanner sc) {
+		super(name, index);
 
 	}
 
@@ -33,17 +36,34 @@ public class SeaPort extends Thing {
 		persons.add(p);
 	}
 
+	public synchronized void addToQ(Ship s) {
+		que.add(s);
+	}
+
 	// returns a list of ships to world
-	public String getShips() {
+	public String getShips(String kindOfShip) {
 		String shipList = "\n--- List of all ships: \n";
-		for (Ship s : ships) {
-			if (ships.isEmpty()) {
-				shipList += "None Listed";
-			} else {
-				shipList += " > " + s;
-			}
+		String passShip = "\n--- List of Passenger Ships: \n";
+		String cargShip = "\n--- List of Cargo Ships: \n";
+		if (ships.isEmpty()) {
+			return "None Listed";
 		}
-		return shipList;
+		for (Ship s : ships) {
+			if (s.getWhetherPassenger()) {
+				passShip += " > " + s.toString();
+			} else if (!s.getWhetherPassenger()) {
+				cargShip += " > " + s.toString();
+			}
+
+			shipList += " > " + s.toString();
+
+		}
+		if (kindOfShip.equals("cargo")) {
+			return cargShip;
+		} else if (kindOfShip.equals("passenger")) {
+			return passShip;
+		} else
+			return shipList;
 	}
 
 	// list of docks for this port
@@ -88,11 +108,12 @@ public class SeaPort extends Thing {
 	}
 
 	// list of jobs for this port
-	public String getJobs() {
+	public String getJobs(String otherParent) {
 		String jobList = "";
-		String endProduct = "\n--- List of all Jobs: \n";
+		String endProduct = "";
+
 		for (Ship sh : ships) {
-			String shipJob = sh.getJobs();
+			String shipJob = sh.getJobs(otherParent);
 			if (shipJob.isEmpty()) {
 				jobList += "";
 			} else {
@@ -101,13 +122,17 @@ public class SeaPort extends Thing {
 			}
 
 		}
-		if (jobList.isEmpty()) {
+		if (jobList.isEmpty() && otherParent.equals("all")) {
 			endProduct += "No Jobs Listed.\n";
+		} else if (jobList.isEmpty()) {
+			endProduct += "";
 		} else {
-			endProduct += jobList;
+			endProduct = "\n--- List of Jobs: \n" + jobList;
 		}
 		return endProduct;
 	}
+
+	
 
 	// searches for given name in this port
 	// assumes there could be multiple results with
@@ -123,12 +148,16 @@ public class SeaPort extends Thing {
 		for (Ship s : ships) {
 			if (s.name.equalsIgnoreCase(text)) {
 				nameResult += s;
+				break;
 			}
-			nameResult += s.jobByName(text);
+			else {
+				nameResult+=s.jobByName(text);
+			}
 
 		}
 		for (Person p : persons) {
 			if (p.name.equalsIgnoreCase(text)) {
+
 				nameResult += p;
 			}
 		}
@@ -152,7 +181,7 @@ public class SeaPort extends Thing {
 		String shipByLB = "";
 		for (Ship s : ships) {
 			if (s.getWeight() >= wgt) {
-				shipByLB += s + "Weight: " + s.getWeight() + "\n";
+				shipByLB += s.name + " Weight: " + s.getWeight() + "\n";
 			}
 		}
 		return shipByLB;
@@ -163,7 +192,7 @@ public class SeaPort extends Thing {
 		String shipByLength = "";
 		for (Ship s : ships) {
 			if (s.getLength() >= len) {
-				shipByLength += s + "Length: " + s.getLength() + "\n";
+				shipByLength += s.name +  " Length: " + s.getLength() + "\n";
 			}
 		}
 		return shipByLength;
@@ -175,7 +204,7 @@ public class SeaPort extends Thing {
 		for (Ship s : ships) {
 			if (s.getWhetherPassenger()) {
 				if (((PassengerShip) s).getNumPassengers() >= numPass) {
-					shipByPassenger += s + "Number of Passengers: " + (((PassengerShip) s)).getNumPassengers() + "\n\n";
+					shipByPassenger += s.name + " Number of Passengers: " + (((PassengerShip) s)).getNumPassengers() + "\n\n";
 				}
 			}
 		}
@@ -185,8 +214,8 @@ public class SeaPort extends Thing {
 	// all attributes of this port class
 	public String toString() {
 		String allData = "";
-		allData += "\n----SeaPort: " + super.toString() + "\n" + getDocks() + getQue() + getShips() + getPersons()
-				+ getJobs();
+		allData += "\n----SeaPort: " + super.toString() + "\n" + getDocks() + getQue() + getShips("all") + getPersons()
+				+ getJobs("all");
 		return allData;
 	}
 
@@ -217,7 +246,7 @@ public class SeaPort extends Thing {
 			Collections.reverse(docks);
 		}
 		for (Dock d : docks) {
-			sortOrder += "\n" + d.name;
+			sortOrder += "\n" + d;
 		}
 		return sortOrder;
 	}
@@ -423,13 +452,82 @@ public class SeaPort extends Thing {
 
 	// initializes the job sort by Ship
 	public String sortJobs(String howToSort, String orderToSort) {
-		sortShip("Name", orderToSort);
 		String sortOrder = "";
 		for (Ship s : ships) {
+			if(!s.fixedJobs.isEmpty()) {
 			sortOrder += "\n--- Ship: " + s.name + "\n";
 			sortOrder += s.sortJobs(howToSort, orderToSort);
+			}
 		}
 		return sortOrder;
+	}
+
+	//builds the nodes for the docks
+	public synchronized void getDockNode(DefaultMutableTreeNode portNode) {
+		DefaultMutableTreeNode dockNode = null;
+		DefaultMutableTreeNode shipNode = null;
+		DefaultMutableTreeNode dock = new DefaultMutableTreeNode("Dock");
+		for (Dock d : docks) {
+			dockNode = new DefaultMutableTreeNode(d.name);
+			if (d.ship != null) {
+				shipNode = new DefaultMutableTreeNode(d.fixedShip.name);
+				d.ship.getJobNodes(shipNode);
+				dockNode.add(shipNode);
+				dock.add(dockNode);
+			}
+
+			portNode.add(dock);
+		}
+
+		return;
+	}
+
+	//builds the nodes for the ships
+	public void getShipNodes(DefaultMutableTreeNode portNode) {
+		DefaultMutableTreeNode cShipNode = new DefaultMutableTreeNode("Cargo Ships");
+		DefaultMutableTreeNode pShipNode = new DefaultMutableTreeNode("Passenger Ships");
+		DefaultMutableTreeNode allShipNode = new DefaultMutableTreeNode("All Ships");
+		DefaultMutableTreeNode qShipNode = new DefaultMutableTreeNode("Ships in Que");
+		DefaultMutableTreeNode shipNode = null;
+
+		for (Ship s : ships) {
+			shipNode = new DefaultMutableTreeNode(s.name);
+			s.getJobNodes(shipNode);
+			allShipNode.add(shipNode);
+
+			if (s.getWhetherPassenger()) {
+				shipNode = new DefaultMutableTreeNode(s.name);
+				s.getJobNodes(shipNode);
+				pShipNode.add(shipNode);
+
+			} else {
+				shipNode = new DefaultMutableTreeNode(s.name);
+				s.getJobNodes(shipNode);
+				cShipNode.add(shipNode);
+			}
+
+		}
+		for (Ship s : que) {
+			shipNode = new DefaultMutableTreeNode(s.name);
+			s.getJobNodes(shipNode);
+			qShipNode.add(shipNode);
+		}
+		portNode.add(allShipNode);
+		portNode.add(qShipNode);
+		portNode.add(pShipNode);
+		portNode.add(cShipNode);
+		return;
+	}
+
+	//builds nodes for person
+	public void getPersonNodes(DefaultMutableTreeNode portNode) {
+		DefaultMutableTreeNode personNode = new DefaultMutableTreeNode("Person");
+		DefaultMutableTreeNode oneNode = null;
+		for (Person p : persons) {
+			oneNode = new DefaultMutableTreeNode(p.toString());
+			personNode.add(oneNode);
+		}
+		portNode.add(personNode);
 	}
 
 }

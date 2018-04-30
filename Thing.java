@@ -7,8 +7,9 @@
  * 	defines the index name parent and toString base methods.
  * PROJECT TWO ADDITIONS: index taken out, accepts name as string 
  * and changed comparator to sort by name.
+ * No additions or changes in Project 3
  */
-import java.util.Scanner;
+
 
 public class Thing implements Comparable<Thing> {
 
@@ -18,12 +19,13 @@ public class Thing implements Comparable<Thing> {
 	public Thing() {
 	}
 
-	public Thing(String name, Scanner sc) {
+	public Thing(String name,int parentIndex) {
 
 		this.name = name;
-		if (sc.hasNextInt())
-			this.parent = sc.nextInt();
+		this.parent=parentIndex;
 	}
+
+	
 
 	// compares the names of each child class
 	@Override

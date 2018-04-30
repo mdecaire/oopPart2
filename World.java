@@ -1,7 +1,7 @@
 
 /**
  * FileName: World.java
- * Date Due: 4/8/2018
+ * Date Due: 4/22/2018
  * Author: Michelle Decaire
  * Purpose: To take the file and build a world of ports that hold docks ships and jobs;
  * docks that hold ships; and ships that hold people.
@@ -11,6 +11,7 @@
  * PROJECT TWO ADDITIONS: processFile was modified to intialize hashmaps, consume the first three tokens on a scanner line 
  * to get the index, and intialize a search by index.
  * Adding children to parent array became trivial with the hashmap and sorting methods were also added
+ * PROJECT THREE ADDITIONS: added nodes and changed some of the string builder methods
  */
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,9 +19,12 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
+import javax.swing.JPanel;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class World extends Thing {
 
@@ -39,12 +43,12 @@ public class World extends Thing {
 	}
 
 	public World(String name, Scanner sc) {
-		super(name, sc);
+		super(name, 0);
 	}
 
 	// reads the file, creates a scanner of one line to pass to each class
 	// instantiation.
-	public String processFile(File file, boolean searchByIndex, int search) {
+	public String processFile(File file, boolean searchByIndex, int search, JPanel jobBoard) {
 		HashMap<Integer, SeaPort> portMap = new HashMap<Integer, SeaPort>();
 		HashMap<Integer, Dock> dockMap = new HashMap<Integer, Dock>();
 		HashMap<Integer, Ship> shipMap = new HashMap<Integer, Ship>();
@@ -66,7 +70,7 @@ public class World extends Thing {
 						name = scan.next();
 					if (scan.hasNextInt())
 						index = scan.nextInt();
-					createClasses(type, scan, name, index, portMap, dockMap, shipMap, personMap, jobMap);
+					createClasses(type, scan, name, index, portMap, dockMap, shipMap, personMap, jobMap, jobBoard);
 
 				}
 			}
@@ -84,41 +88,48 @@ public class World extends Thing {
 		return "";
 	}
 
+	Ship currentShip = null;
+//creates the classes by reading the file
 	private void createClasses(String type, Scanner scan, String name, int index, HashMap<Integer, SeaPort> portMap,
 			HashMap<Integer, Dock> dockMap, HashMap<Integer, Ship> shipMap, HashMap<Integer, Person> personMap,
-			HashMap<Integer, Job> jobMap) {
+			HashMap<Integer, Job> jobMap, JPanel jobBoard) {
+		int parentIndex = scan.nextInt();
+		int shipCount = 0;
 		switch (type) {
 		case "port":
-			port = new SeaPort(name, scan);
+			port = new SeaPort(name, parentIndex, scan);
 			ports.add(port);
 			portMap.put(index, port);
 			break;
 		case "dock":
-			dock = new Dock(name, scan);
+			dock = new Dock(name, parentIndex, scan);
 			addDock(dock, portMap);
 			dockMap.put(index, dock);
 			break;
 		case "pship":
-			pShip = new PassengerShip(name, scan);
+			shipCount++;
+			pShip = new PassengerShip(name, parentIndex, scan);
 			pShip.setWhetherPassenger(true);
 			shipMap.put(index, pShip);
 			assignShip((Ship) pShip, portMap, dockMap);
 			break;
 		case "cship":
-			cShip = new CargoShip(name, scan);
+			shipCount++;
+			cShip = new CargoShip(name, parentIndex, scan);
 			cShip.setWhetherPassenger(false);
 			shipMap.put(index, cShip);
 			assignShip((Ship) cShip, portMap, dockMap);
 			shipMap.put(index, cShip);
 			break;
 		case "person":
-			employee = new Person(name, scan);
+			employee = new Person(name, parentIndex, scan);
 			addPerson(employee, portMap);
 			personMap.put(index, employee);
 			break;
 		case "job":
-			job = new Job(name, scan);
-			addJob(job, shipMap);
+			Ship currentShip = findParent(parentIndex, shipMap);
+			job = new Job(name, parentIndex, scan, jobBoard, currentShip, shipCount);
+			addJob(job, currentShip);
 			jobMap.put(index, job);
 			break;
 		default:
@@ -127,12 +138,21 @@ public class World extends Thing {
 
 	}
 
+	//new method to have the job find its parent
+	private Ship findParent(int parentIndex, HashMap<Integer, Ship> shipMap) {
+		Ship s = shipMap.get(parentIndex);
+		return s;
+
+	}
+
 	// determine which port the dock belongs to.
 	private void addDock(Dock dock2, HashMap<Integer, SeaPort> portMap) {
 		SeaPort p = portMap.get(dock.parent);
 		if (p != null) {
 			p.addDock(dock2);
+			dock2.setPortParent(p);
 		}
+		return;
 	}
 
 	// determines which port the person belongs to.
@@ -145,12 +165,12 @@ public class World extends Thing {
 	}
 
 	// find which ship the job belongs to.
-	private void addJob(Job job2, HashMap<Integer, Ship> shipMap) {
-		Ship myShip = shipMap.get(job2.parent);
-		if (myShip != null) {
-			myShip.addJob(job2);
-		}
+	private void addJob(Job job2, Ship currentShip2) {
+		if (currentShip2 != null) {
+			currentShip2.addJob(job2);
 
+		}
+		return;
 	}
 
 	// assigns ships to the correct dock and or list by
@@ -163,6 +183,8 @@ public class World extends Thing {
 		if (myDock == null) {
 			port.ships.add(myShip);
 			port.que.add(myShip);
+			myShip.setPort(port);
+			myShip.setDock(null);
 			return;
 		} else {
 			long dTime = setTime(6);
@@ -171,6 +193,9 @@ public class World extends Thing {
 			myDock.setShip(myShip);
 			myShip.setDockTime(dTime);
 			port.ships.add(myShip);
+			myShip.setDock(myDock);
+			myShip.setPort(port);
+
 		}
 
 	}
@@ -184,66 +209,15 @@ public class World extends Thing {
 		return time;
 	}
 
-	// returns a list of ships from each port
-	public String getShips() {
-		String ships = "";
-		for (SeaPort pt : ports) {
-			ships += "\n--- Port: " + pt.name + ": \n";
-			ships += pt.getShips();
-		}
-		return ships;
-	}
 
-	// returns a list of ports
-	public String getPorts() {
-		String portList = "";
-		for (SeaPort p : ports) {
-			portList += "------" + p.toString(true);
-		}
-		return portList;
-	}
-
-	// returns the list of ships in que as string for each port
-	public String getQue() {
-		String qList = "";
-		for (SeaPort p : ports) {
-			qList += "Port: " + p.name + "\n" + p.getQue() + "\n";
-		}
-		return qList;
-	}
-
-	// returns a list of persons for each port
-	public String getPerson() {
-		String personList = "";
-		for (SeaPort p : ports) {
-			personList += "Port: " + p.name + "\n" + p.getPersons() + "\n";
-		}
-		return personList;
-	}
-
-	// returns a list of docks for each port
-	public String getDock() {
-		String dockList = "";
-		for (SeaPort p : ports) {
-			dockList += "-----Port: " + p.name + "\n" + p.getDocks() + "\n";
-		}
-		return dockList;
-	}
-
-	// returns a list of jobs for each port
-	public String getJob() {
-		String jobList = "";
-		for (SeaPort p : ports) {
-			jobList += "Port: " + p.name + "\n" + p.getJobs() + "\n";
-		}
-		return jobList;
-	}
+	
 
 	// returns the results for a name search
 	public String searchName(String text) {
 		String resultForName = "";
 		String tempString = "";
 		for (SeaPort p : ports) {
+
 			if (p.name.equalsIgnoreCase(text)) {
 				resultForName += p;
 				return resultForName;
@@ -254,6 +228,7 @@ public class World extends Thing {
 					tempString = "";
 				}
 			}
+
 		}
 
 		return resultForName;
@@ -349,10 +324,10 @@ public class World extends Thing {
 
 		if (d != null) {
 			SeaPort p = portMap.get(d.parent);
-			shipResults += p.toString(true) + "\n" + d;
+			shipResults += p.toString() + "\n" + d;
 		} else {
 			SeaPort p = portMap.get(s.parent);
-			shipResults += p.toString(true) + "\n" + s;
+			shipResults += p.toString() + "\n" + s;
 		}
 		return shipResults;
 	}
@@ -365,7 +340,7 @@ public class World extends Thing {
 			Collections.reverse(ports);
 
 		}
-		//sorts everything then prints the port tostring
+		// sorts everything then prints the port tostring
 		if (whatToSort.equals("All")) {
 			for (SeaPort p : ports) {
 				p.sortJobs("Name", orderToSort);
@@ -378,7 +353,7 @@ public class World extends Thing {
 			}
 		} else {
 			for (SeaPort p : ports) {
-				sortedOrder += p.toString(true);
+				sortedOrder += p.toString();
 
 			}
 		}
@@ -440,5 +415,295 @@ public class World extends Thing {
 		}
 		return sortOrder;
 	}
+
+	public synchronized void addNodes(DefaultMutableTreeNode port2) {
+		DefaultMutableTreeNode portNode = null;
+		for (SeaPort p : ports) {
+			portNode = new DefaultMutableTreeNode(p.name);
+			p.getDockNode(portNode);
+			p.getShipNodes(portNode);
+			p.getPersonNodes(portNode);
+			port2.add(portNode);
+		}
+		return;
+
+	}
+
+	/**
+	 * replaces one of the original screen builders. THis builds an array to display on a table
+	 * for all ports
+	 * @return
+	 * 
+	 */
+	
+	public ArrayList<LinkedList<String>> buildList() {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			s = new LinkedList<String>();
+			for (Dock d : p.docks) {
+				s.add(p.name);
+				s.add(d.name);
+				s.add(d.ship.name);
+				s.add("");
+				al.add(s);
+				s = new LinkedList<String>();
+			}
+			for (Ship ship : p.que) {
+
+				s.add(p.name);
+				s.add("");
+				s.add(ship.name);
+				s.add("");
+
+				al.add(s);
+				s = new LinkedList<String>();
+			}
+			for (Person peep : p.persons) {
+				s.add(p.name);
+				s.add("");
+				s.add("");
+				s.add(peep.toString());
+				al.add(s);
+				s = new LinkedList<String>();
+			}
+			al.add(s);
+			s = new LinkedList<String>();
+		}
+		return al;
+	}
+	
+	/**
+	 * replaces the string builder for dock information
+	 * @param parent
+	 * @return
+	 */
+
+	public ArrayList<LinkedList<String>> buildDockList(String parent) {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(parent)) {
+				s = new LinkedList<String>();
+				for (Dock d : p.docks) {
+					s.add(p.name);
+					s.add(d.name);
+					s.add(d.fixedShip.name);
+					s.add("");
+					al.add(s);
+					s = new LinkedList<String>();
+				}
+				al.add(s);
+				s = new LinkedList<String>();
+			}
+		}
+		return al;
+	}
+
+	/**
+	 * builds a list for all ships
+	 * @param name
+	 * @return
+	 */
+	public ArrayList<LinkedList<String>> buildShipList(String name) {
+
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(name)) {
+				s = new LinkedList<String>();
+				for (Ship ship : p.ships) {
+					if (ship.fixedJobs.isEmpty()) {
+						s.add(p.name);
+						s.add(ship.name);
+						s.add("");
+						al.add(s);
+						s = new LinkedList<String>();
+					} else {
+						String jobName = "";
+						s.add(p.name);
+						s.add(ship.name);
+						for (Job j : ship.fixedJobs) {
+							jobName += j.name + ", ";
+						}
+						s.add(jobName);
+						al.add(s);
+						s = new LinkedList<String>();
+					}
+				}
+			}
+		}
+		return al;
+	}
+	/**
+	 * builds a list for passenger ships to display on table
+	 * @param name
+	 * @return
+	 */
+
+	public ArrayList<LinkedList<String>> buildPassShipList(String name) {
+
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(name)) {
+				s = new LinkedList<String>();
+				for (Ship ship : p.ships) {
+					if (ship.getWhetherPassenger()) {
+						if (ship.fixedJobs.isEmpty()) {
+							s.add(p.name);
+							s.add(ship.toString());
+							s.add("");
+							al.add(s);
+							s = new LinkedList<String>();
+						} else {
+							String jobName = "";
+							s.add(p.name);
+							s.add(ship.toString());
+							for (Job j : ship.fixedJobs) {
+								jobName += j.name + ", ";
+							}
+							s.add(jobName);
+							al.add(s);
+							s = new LinkedList<String>();
+						}
+					}
+				}
+			}
+		}
+		return al;
+	}
+
+	/**
+	 * builds a list for cargo ships
+	 * @param parent
+	 * @return
+	 */
+	public ArrayList<LinkedList<String>> buildCargShipList(String parent) {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(parent)) {
+				s = new LinkedList<String>();
+				for (Ship ship : p.ships) {
+					if (!ship.getWhetherPassenger()) {
+						if (ship.fixedJobs.isEmpty()) {
+							s.add(p.name);
+							s.add(ship.toString());
+							s.add("");
+							al.add(s);
+							s = new LinkedList<String>();
+						} else {
+							String jobName = "";
+							s.add(p.name);
+							s.add(ship.toString());
+							for (Job j : ship.fixedJobs) {
+								jobName += j.name + ", ";
+							}
+							s.add(jobName);
+							al.add(s);
+							s = new LinkedList<String>();
+						}
+					}
+				}
+			}
+		}
+		return al;
+	}
+
+	/**
+	 * builds a list of the ships in que
+	 * @param parent
+	 * @return
+	 */
+	public ArrayList<LinkedList<String>> queList(String parent) {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(parent)) {
+				s = new LinkedList<String>();
+				for (Ship ship : p.que) {
+					if (ship.fixedJobs.isEmpty()) {
+						s.add(p.name);
+						s.add(ship.toString());
+						s.add("");
+						al.add(s);
+						s = new LinkedList<String>();
+					} else {
+						String jobName = "";
+						s.add(p.name);
+						s.add(ship.toString());
+						for (Job j : ship.fixedJobs) {
+							jobName += j.name + ", ";
+						}
+						s.add(jobName);
+						al.add(s);
+						s = new LinkedList<String>();
+					}
+
+				}
+			}
+		}
+		return al;
+	}
+	/**
+	 * builds a list of persons belonging to the parent port
+	 * @param parent
+	 * @return
+	 */
+
+	public ArrayList<LinkedList<String>> personList(String parent) {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for (SeaPort p : ports) {
+			if (p.name.equals(parent)) {
+				s = new LinkedList<String>();
+				for (Person peep : p.persons) {
+					s.add(p.name);
+					s.add(peep.toString());
+					al.add(s);
+					s = new LinkedList<String>();
+				}
+			}
+
+		}
+
+		return al;
+	}
+
+	/**
+	 * builds a list from the ship list that was not changed by jobs
+	 * @param parent
+	 * @return
+	 */
+	public ArrayList<LinkedList<String>> buildJobList(String parent) {
+		LinkedList<String> s;
+		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
+		for(SeaPort p: ports) {
+			s = new LinkedList<String>();
+			for(Ship ship: p.ships) {
+				Ship rightShip= null;
+				if(ship.name.equals(parent)) {
+					rightShip=ship;
+					if (rightShip.getPort().name.equals(p.name)){
+						for(Job j: rightShip.fixedJobs) {
+							s.add(p.name);
+							s.add(rightShip.name);
+							s.add(j.name);
+							s.add(j.getRequirements());
+							al.add(s);
+							s = new LinkedList<String>();
+
+						}
+						
+						break;
+					}
+				}
+			}
+		}
+		return al;
+	}
+
+	
 
 }
