@@ -1,10 +1,11 @@
 
 /**
  * File Name: PassengerShip.java
- * Date: 4/8/2018
+ * Date: 4/22/2018
  * Author: Michelle Decaire
  * Purpose: to define a passenger ship
  * NO METHODS ADDED DURING PROJECT 2
+ * NO CHANGES MADE IN PROJECT THREE
  */
 import java.util.Scanner;
 
@@ -15,8 +16,8 @@ public class PassengerShip extends Ship {
 	private int numOccupied;
 	public Boolean amPassenger = true;
 
-	public PassengerShip(String name, Scanner sc) {
-		super(name, sc);
+	public PassengerShip(String name,int index, Scanner sc) {
+		super(name, index, sc);
 		if (sc.hasNextInt())
 			this.setNumPassengers(sc.nextInt());
 		if (sc.hasNextInt())

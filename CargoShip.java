@@ -1,6 +1,6 @@
 /**
  * File name: CargoShip.java
- * Date: 4/8/2018
+ * Date: 4/22/2018
  * Author: Michelle Decaire
  * Purpose: To define and hold elements of a cargo Class.
  * NO FEATURES ADDED TO PROJECT TWO
@@ -13,8 +13,8 @@ public class CargoShip extends Ship {
 	private double cargoVolume;
 	private double cargoWeight;
 
-	public CargoShip(String name, Scanner sc) {
-		super(name, sc);
+	public CargoShip(String name, int index,Scanner sc) {
+		super(name, index,sc);
 		if (sc.hasNextDouble())
 			this.setCargoValue(sc.nextDouble());
 		if (sc.hasNextDouble())
