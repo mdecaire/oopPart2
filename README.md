@@ -12,6 +12,6 @@ move into the dock.
 A status bar is given for each job, and if there are not enough resources at the port than the job is cancelled. 
 The text files are what are to be read in and parsed.
 
-This project also has sorting and searching capabilities which I intend to extend by adding a jtable that included searchability.
+This project also has sorting and searching capabilities which I eventually intend to extend by adding a jtable that includes searchability.
 
 A Jar file has been added for anyone who would like to see a demo.
