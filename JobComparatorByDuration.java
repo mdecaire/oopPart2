@@ -3,11 +3,12 @@ import java.util.Comparator;
 
 /**
  * File Name: Comparators.java
- * Date Due: 4/22/2018
+ * Date Due: 05/06/2018
  * Author: Michelle Decaire
  * Purpose: To implement comparator class that will provide sorting 
  * jobs by duration
  * NO CHANGES MADE IN PROJECT THREE
+ * NO CHANGES MADE IN PROJECT FOUR
  */
 
 

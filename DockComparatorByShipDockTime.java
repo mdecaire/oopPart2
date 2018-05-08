@@ -1,6 +1,6 @@
 /** 
  * File Name: DockComparatorByShipDOCKTime.java
- * Date: 4/22/2018
+ * Date: 05/06/2018
  * Author: Michelle Decaire
  * Purpose: TO compare docks by arrival time
  * NO Changes added in project three

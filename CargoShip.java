@@ -1,9 +1,10 @@
 /**
  * File name: CargoShip.java
- * Date: 4/22/2018
+ * Date: 05/06/2018
  * Author: Michelle Decaire
  * Purpose: To define and hold elements of a cargo Class.
  * NO FEATURES ADDED TO PROJECT TWO
+ * TO Featured added in parts 3 or 4
  */
 import java.util.Scanner;
 

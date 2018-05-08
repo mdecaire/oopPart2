@@ -1,7 +1,7 @@
 
 /**
  * File Name: Ship.java
- * Date: 4/22/2018
+ * Date:05/06/2018
  * Author: Michelle Decaire
  * Purpose: to define a parent ship class and hold 
  * all jobs attached to the ship. Perfoms searches on
@@ -10,6 +10,7 @@
  * ascending but descending is available
  * PROJECT THREE ADDITIONS: added a method to build nodes for the jtree and 
  * added a fixed array and added parent dock and port
+ *  NO CHANGES MADE IN PROJECT FOUR
  */
 
 import java.util.Collections;

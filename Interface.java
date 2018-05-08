@@ -1,7 +1,7 @@
 
 /**
- * File Name: GUI.java
- * Due Date: 4/22/2018
+ * File Name: Interface.java
+ * Due Date:05/06/2018
  * Author: Michelle Decaire
  * PuRpose: to build a interface and initialize searches  
  * foR data that the text file may want related to ports and such.
@@ -9,6 +9,8 @@
  * and added a sorting initializer method.
  * CHANGES IN PROJECT THREE: jtree added show structures method changed
  * to display information in table
+ * Project 4 Refactoring done to make a few methods smaller-  some new components added to the build
+ * interface method.
  */
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -50,7 +52,7 @@ public class Interface<T> extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private static JFrame frame;
 	private File file = null;
-	private File fileForSearch=null;
+	private File fileForSearch = null;
 	private World shipWorld = null;
 	final JComboBox<String> sortCriteria = new JComboBox<String>();
 	JTree structuredTree;
@@ -66,7 +68,9 @@ public class Interface<T> extends JFrame {
 
 	}
 
-	// builds the interface and uses lambda to perform component actions
+	/**
+	 *  builds the interface and uses lambda to perform component actions
+	 */
 	private synchronized void buildInterface() {
 		frame = new JFrame("Port Information Tool");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -173,7 +177,13 @@ public class Interface<T> extends JFrame {
 		tp.addTab("Search", p2);
 		tp.addTab("Sorted", p3);
 		tp.addTab("Job Progression", p4);
-
+		JButton updateScreen= new JButton("Update Resource Pool");
+		JPanel bPanl= new JPanel(new GridLayout(1,3));
+		bPanl.add(new JLabel());
+		bPanl.add(updateScreen);
+		bPanl.add(new JLabel());
+		
+		
 		GridBagConstraints c = new GridBagConstraints();
 
 		c.anchor = GridBagConstraints.PAGE_START;
@@ -193,61 +203,86 @@ public class Interface<T> extends JFrame {
 		c.gridx = 0;
 		c.gridy = 5;
 		contentPane.add(sortPanel, c);
-
-		// split pane
-		JSplitPane vertSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-		vertSplit.setTopComponent(contentPane);
-		vertSplit.setBottomComponent(tp);
-		vertSplit.setDividerLocation(.3);
-		vertSplit.setOneTouchExpandable(true);
-		vertSplit.setContinuousLayout(false);
+		
+		c.gridx = 0;
+		c.gridy = 6;
+		contentPane.add(bPanl, c);
+		
+		//contenet for tabbed panes
+		JPanel resourcePanel = new JPanel();
+		resourcePanel.setBorder(new TitledBorder(new EtchedBorder(), "Resources Currently Available"));
+		JScrollPane resourceScroll = new JScrollPane(resourcePanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		JSplitPane horSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-		horSplit.setLeftComponent(treeView);
-		horSplit.setRightComponent(vertSplit);
+
+		JSplitPane leftPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		JTextArea textArea = new JTextArea();
+		
+
+		textArea.setBorder((new TitledBorder(new EmptyBorder(1, 1, 1, 1), "Original Port Resources:")));
+		leftPane.setTopComponent(treeView);
+		leftPane.setBottomComponent(textArea);
+		horSplit.setLeftComponent(leftPane);
 		horSplit.setDividerLocation(300);
 		horSplit.setOneTouchExpandable(true);
 		horSplit.setContinuousLayout(true);
 
-		frame.setContentPane(horSplit);
+		JSplitPane topSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		topSplit.setTopComponent(contentPane);
+		topSplit.setDividerLocation(250);
+		topSplit.setBottomComponent(resourceScroll);
+		horSplit.setOneTouchExpandable(true);
+		horSplit.setContinuousLayout(true);
+
+		JSplitPane totalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		horSplit.setRightComponent(topSplit);
+		totalSplit.setTopComponent(horSplit);
+		totalSplit.setBottomComponent(tp);
+		totalSplit.setDividerLocation(650);
+		totalSplit.setOneTouchExpandable(true);
+		totalSplit.setContinuousLayout(true);
+
+		frame.setContentPane(totalSplit);
 		frame.setLocationByPlatform(true);
 		frame.pack();
 		frame.setResizable(true);
-		frame.setSize(1600, 900);
+		frame.setSize(1600, 1200);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
+
 		tp.setSelectedIndex(3);
 		DefaultTreeModel model = (DefaultTreeModel) structuredTree.getModel();
+		
 		// actions for components
 		mainSort.addActionListener(e -> setComboBox(mainSort.getSelectedItem()));
-		fileButton.addActionListener(
-				e -> getFile(model, textLabel, top, tp, JobBoard, p1, StructureScroll, structureResults));
-
-		searchButton.addActionListener(
-				e -> getSearchResults(searchField.getText(), searchList.getSelectedItem(), searchResults, tp, JobBoard));
+		try {
+			fileButton.addActionListener(e -> getFile(model, textLabel, top, tp, JobBoard, p1, StructureScroll,
+					structureResults, resourcePanel, textArea));
+			updateScreen.addActionListener(e->shipWorld.updateLogging());
+		} catch (Exception e) {
+			System.out.println("In file event");
+		}
+		searchButton.addActionListener(e -> getSearchResults(searchField.getText(), searchList.getSelectedItem(),
+				searchResults, tp, JobBoard, resourcePanel, textArea));
 		sortButton.addActionListener(e -> showSorted(mainSort.getSelectedItem(), sortCriteria.getSelectedItem(),
 				sortOrder.getSelectedItem(), sortResults, tp));
 
 	}
+
 	/**
 	 * builds the nodes and calls the show structure when a node is clicked
-	 * @param model
-	 * @param top
-	 * @param tp
-	 * @param p1
-	 * @param structureScroll
-	 * @param structureResults
 	 */
 
 	private synchronized void createNodes(DefaultTreeModel model, DefaultMutableTreeNode top, JTabbedPane tp, JPanel p1,
-			JScrollPane structureScroll, JTextArea structureResults) {
+			JScrollPane structureScroll, JTextArea structureResults, JPanel resourcePanel) {
 
 		DefaultMutableTreeNode Port = new DefaultMutableTreeNode("Ports");
 		shipWorld.addNodes(Port);
 		top.add(Port);
 		model.reload(top);
 		try {
-			structuredTree.addTreeSelectionListener(
-					e -> showStructure(structuredTree.getSelectionPaths(), tp, p1, structureScroll, structureResults));
+			structuredTree.addTreeSelectionListener(e -> showStructure(structuredTree.getSelectionPaths(), tp, p1,
+					structureScroll, structureResults, resourcePanel));
 
 		} catch (NullPointerException e) {
 
@@ -255,11 +290,14 @@ public class Interface<T> extends JFrame {
 		return;
 	}
 
-	// method to initialize sorting in the world class...feeds file in for an index
-	// sort
+	/**
+	 * method to initialize sorting in the world class...feeds file in for an index
+	 * sort
+	 */
+
 	private void showSorted(Object selectedItem, Object selectedItem2, Object selectedItem3,
 			JTextArea sortResultsTextArea, JTabbedPane tp) {
-		
+
 		tp.setSelectedIndex(2);
 		int x;
 		String whatToSort = (String) selectedItem;
@@ -300,10 +338,13 @@ public class Interface<T> extends JFrame {
 		return;
 	}
 
-	// for the search section of the program. Case statement is for
-	// different different search types.
-	private String getSearchResults(String oldText, Object selectedItem, JTextArea searchResults, JTabbedPane tp, JPanel jobBoard) {
+	/**
+	 * for the search section of the program. Case statement is for different search
+	 * types.
+	 */
 
+	private String getSearchResults(String oldText, Object selectedItem, JTextArea searchResults, JTabbedPane tp,
+			JPanel jobBoard, JPanel resourcePanel, JTextArea textArea) {
 		tp.setSelectedIndex(1);
 
 		String searchType = "";
@@ -327,7 +368,8 @@ public class Interface<T> extends JFrame {
 			case "Index":
 				World searchWorld = new World();
 				int searchNum = Integer.parseInt(text);
-				textDisplay = searchWorld.processFile(fileForSearch, true, searchNum, jobBoard);
+				textDisplay = searchWorld.processFile(fileForSearch, true, searchNum, jobBoard, resourcePanel,
+						textArea);
 				if (textDisplay.isEmpty()) {
 					showMessage("Index Not Found", "Please check the number entered and try again!");
 				}
@@ -387,20 +429,23 @@ public class Interface<T> extends JFrame {
 
 	}
 
-	// informational messages like no name found
+	/**
+	 * informational messages like no name found
+	 */
 	private void showMessage(String title, String message) {
 
 		JOptionPane.showMessageDialog(frame, message, title, JOptionPane.PLAIN_MESSAGE);
 
 	}
 
-	// gets the structure strings/arrays for table for each class
+	/**
+	 * gets the structure strings/arrays for table for each class
+	 *
+	 */
 	private synchronized void showStructure(TreePath[] treePaths, JTabbedPane tp, JPanel p1,
-			JScrollPane structureScroll, JTextArea structureResults) {
+			JScrollPane structureScroll, JTextArea structureResults, JPanel resourcePanel) {
 		tp.setSelectedIndex(0);
 		String s = "";
-		String[][] list = null;
-
 		if (treePaths == null) {// this is to prevent a race condition from happening if a new file is selected
 			return;
 		}
@@ -426,75 +471,89 @@ public class Interface<T> extends JFrame {
 		case "World":
 			tableEl = new String[] { "Port", "Dock", "Ship", "Persons" };
 			alist = shipWorld.buildList();
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Ports":
 
 			tableEl = new String[] { "Port", "Dock", "Ship", "Persons" };
 			alist = shipWorld.buildList();
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Dock":
-			tableEl = new String[] { "Port", "Dock", "Ship"};
+			tableEl = new String[] { "Port", "Dock", "Ship" };
 			alist = shipWorld.buildDockList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "All Ships":
-			tableEl = new String[] { "Port",  "Ship", "Job"};
+			tableEl = new String[] { "Port", "Ship", "Job" };
 			alist = shipWorld.buildShipList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Passenger Ships":
-			tableEl = new String[] { "Port",  " Passenger Ships", "Job"};
+			tableEl = new String[] { "Port", " Passenger Ships", "Job" };
 			alist = shipWorld.buildPassShipList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Cargo Ships":
-			tableEl = new String[] { "Port",  " Cargo Ships", "Job"};
+			tableEl = new String[] { "Port", " Cargo Ships", "Job" };
 			alist = shipWorld.buildCargShipList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Ships in Que":
-			tableEl = new String[] { "Port",  " Cargo Ships", "Job"};
+			tableEl = new String[] { "Port", " Cargo Ships", "Job" };
 			alist = shipWorld.queList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Person":
-			tableEl = new String[] { "Port",  "Persons"};
+			tableEl = new String[] { "Port", "Persons" };
 			alist = shipWorld.personList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		case "Job":
 			tableEl = new String[] { "Port", "Ship", "Jobs", "Requirements" };
 			alist = shipWorld.buildJobList(parent);
-			buildTable(tableEl, alist, list, p1);
+			buildTable(tableEl, alist, p1);
 			break;
 		default:
-			//sets the infromation to a string if name was selected
-			structureScroll.removeAll();
-			strucList = getSearchResults(nodeName, null, structureResults, tp, null);
-			tp.setSelectedIndex(0);
-			structureResults.setText(strucList);
-			int x;
-			structureResults.selectAll();
-			x = structureResults.getSelectionStart();
-			structureResults.select(x, x);
-			structureScroll.add(structureResults);
-			structureScroll.revalidate();
-			structureScroll.repaint();
-			p1.removeAll();
-			p1.add(structureScroll);
-			p1.revalidate();
-			p1.repaint();
+			// sets the information to a string if name was selected
+			buildStringElements(structureScroll, nodeName, structureResults, tp, resourcePanel, p1, strucList);
+
 		}
 
 		return;
 	}
 
-	//builds the actual table.
-	private void buildTable(String[] tableEl, ArrayList<LinkedList<String>> alist, String[][] list, JPanel p1) {
+	/**
+	 * helper method to build string elements for structure
+	 */
+	private void buildStringElements(JScrollPane structureScroll, String nodeName, JTextArea structureResults,
+			JTabbedPane tp, JPanel resourcePanel, JPanel p1, String strucList) {
+		structureScroll.removeAll();
+		strucList = getSearchResults(nodeName, null, structureResults, tp, null, resourcePanel, null);
+		tp.setSelectedIndex(0);
+		structureResults.setText(strucList);
+		int x;
+		structureResults.selectAll();
+		x = structureResults.getSelectionStart();
+		structureResults.select(x, x);
+		structureScroll.add(structureResults);
+		structureScroll.revalidate();
+		structureScroll.repaint();
+		p1.removeAll();
+		p1.add(structureScroll);
+		p1.revalidate();
+		p1.repaint();
+
+	}
+
+	/**
+	 * helper method to build the actual table.
+	 * 
+	 */
+	private void buildTable(String[] tableEl, ArrayList<LinkedList<String>> alist, JPanel p1) {
 		int count = 0;
-		list = new String[alist.size()][tableEl.length];
+
+		String[][] list = new String[alist.size()][tableEl.length];
 		for (LinkedList<String> l : alist) {
 			list[count] = l.toArray(new String[tableEl.length]);
 			count++;
@@ -509,15 +568,20 @@ public class Interface<T> extends JFrame {
 
 	}
 
-	// in case of errors
+	/**
+	 * in case of errors
+	 */
 	private void showError(String title, String message) {
 		JOptionPane.showMessageDialog(frame, message, title, JOptionPane.ERROR_MESSAGE);
 
 	}
 
-	// gets the file and creates the world
+	/**
+	 * gets the file and creates the world
+	 */
 	private synchronized void getFile(DefaultTreeModel model, JLabel textLabel, DefaultMutableTreeNode top,
-			JTabbedPane tp, JPanel jobBoard, JPanel p1, JScrollPane structureScroll, JTextArea structureResults) {
+			JTabbedPane tp, JPanel jobBoard, JPanel p1, JScrollPane structureScroll, JTextArea structureResults,
+			JPanel resourcePanel, JTextArea textArea) {
 		file = null;
 		top.removeAllChildren();
 		jobBoard.removeAll();
@@ -527,21 +591,28 @@ public class Interface<T> extends JFrame {
 		int returnValue = fc.showOpenDialog(frame);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
 			file = fc.getSelectedFile();
-			fileForSearch=fc.getSelectedFile();
+			fileForSearch = fc.getSelectedFile();
 			shipWorld = new World();
-			shipWorld.processFile(file, false, 0, jobBoard);
+			shipWorld.processFile(file, false, 0, jobBoard, resourcePanel, textArea);
 			textLabel.setText("    " + file.getName());
-			createNodes(model, top, tp, p1, structureScroll, structureResults);
+			shipWorld.updateLogging();
 		}
-
+		
+		try {
+			createNodes(model, top, tp, p1, structureScroll, structureResults, resourcePanel);
+		} catch (Exception e) {
+			System.out.println("Node Error");
+		}
+		
 		return;
 
 	}
 
-	String sortSection = "";
 
-	// uses the information from the first combo box to set the model for the second
-	// combo box
+	/**
+	 * uses the information from the first combo box to set the model for the second
+	 * combo box
+	 */
 	public void setComboBox(Object object) {
 
 		DefaultComboBoxModel<String> defList = new DefaultComboBoxModel<String>(new String[] { "Name" });

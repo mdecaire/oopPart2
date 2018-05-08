@@ -1,11 +1,12 @@
 
 /**
  * File Name: PassengerShip.java
- * Date: 4/22/2018
+ * Date:05/06/2018
  * Author: Michelle Decaire
  * Purpose: to define a passenger ship
  * NO METHODS ADDED DURING PROJECT 2
  * NO CHANGES MADE IN PROJECT THREE
+ * NO CHANGES MADE IN PROJECT FOUR
  */
 import java.util.Scanner;
 

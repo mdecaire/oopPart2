@@ -1,11 +1,12 @@
 
 /**
  * File Name: Dock.java
- * Date due: 4/8/2018
+ * Date due:05/06/2018
  * Author: Michelle Decaire
  * Purpose: to define a dock which holds a ship.
  * NO METHODS WERE ADDED TO THIS CLASS FOR PROJECT 2
- * added a fixed ship method to show the original ships that were in port
+ * PROJECT 3: added a fixed ship method to show the original ships that were in port
+ * PART 4: NO new additions
  */
 import java.util.Scanner;
 

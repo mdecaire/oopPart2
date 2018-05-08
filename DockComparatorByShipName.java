@@ -1,10 +1,11 @@
 
 /**
  * File Name: Comparators.java
- * Date Due: 4/8/2018
+ * Date Due: 05/06/2018
  * Author: Michelle Decaire
  * Purpose: To implement comparator that will sort dock by ship name
  * NO changed added to project 3
+ * no changes in part 4
  */
 import java.util.Comparator;
 

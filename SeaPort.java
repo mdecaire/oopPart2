@@ -1,29 +1,45 @@
 
 /**
  * File Name: SeaPort.java
- * Date Due: 4/22/2018
+ * Date Due: 05/06/2018
  * Author: Michelle DeCaire
  * Purpose: To represent its segment of the world
  * it holds list of docks,  ships, persons and que. 
  * It is responsible for  most searches since it owns the list.
  * PROJECT TWO ADDITIONS: added multiple sorting features for each arrayList
  * PROJECT THREE ADDITIONS: added node classes 
+ * Project 4: added a check resources which checks to make sure there are
+ * enough resources to make a job start 
+ * added a show resources method which is a helper method to build the visual
+ * elements of the resource pool.
  */
+
+import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 public class SeaPort extends Thing {
 	CopyOnWriteArrayList<Dock> docks = new CopyOnWriteArrayList<Dock>();
 	CopyOnWriteArrayList<Ship> que = new CopyOnWriteArrayList<Ship>();
 	ArrayList<Ship> ships = new ArrayList<Ship>();
-	ArrayList<Person> persons = new ArrayList<Person>();
-	
-	SeaPort(String name, int index, Scanner sc) {
+	CopyOnWriteArrayList<Person> persons = new CopyOnWriteArrayList<Person>();
+	CopyOnWriteArrayList<Person> personnelRoster = new CopyOnWriteArrayList<Person>();// to make sure resources are
+																						// available
+	JPanel pan = new JPanel();
+	PortTime time;
+
+	SeaPort(String name, int index, Scanner sc, PortTime worldTime) {
 		super(name, index);
 
+		this.time = worldTime;
 	}
 
 	// adds dock to list
@@ -34,6 +50,7 @@ public class SeaPort extends Thing {
 	// adds person to list
 	public void addPerson(Person p) {
 		persons.add(p);
+		personnelRoster.add(p);
 	}
 
 	public synchronized void addToQ(Ship s) {
@@ -132,8 +149,6 @@ public class SeaPort extends Thing {
 		return endProduct;
 	}
 
-	
-
 	// searches for given name in this port
 	// assumes there could be multiple results with
 	// the same name
@@ -149,9 +164,8 @@ public class SeaPort extends Thing {
 			if (s.name.equalsIgnoreCase(text)) {
 				nameResult += s;
 				break;
-			}
-			else {
-				nameResult+=s.jobByName(text);
+			} else {
+				nameResult += s.jobByName(text);
 			}
 
 		}
@@ -192,7 +206,7 @@ public class SeaPort extends Thing {
 		String shipByLength = "";
 		for (Ship s : ships) {
 			if (s.getLength() >= len) {
-				shipByLength += s.name +  " Length: " + s.getLength() + "\n";
+				shipByLength += s.name + " Length: " + s.getLength() + "\n";
 			}
 		}
 		return shipByLength;
@@ -204,7 +218,8 @@ public class SeaPort extends Thing {
 		for (Ship s : ships) {
 			if (s.getWhetherPassenger()) {
 				if (((PassengerShip) s).getNumPassengers() >= numPass) {
-					shipByPassenger += s.name + " Number of Passengers: " + (((PassengerShip) s)).getNumPassengers() + "\n\n";
+					shipByPassenger += s.name + " Number of Passengers: " + (((PassengerShip) s)).getNumPassengers()
+							+ "\n\n";
 				}
 			}
 		}
@@ -454,15 +469,15 @@ public class SeaPort extends Thing {
 	public String sortJobs(String howToSort, String orderToSort) {
 		String sortOrder = "";
 		for (Ship s : ships) {
-			if(!s.fixedJobs.isEmpty()) {
-			sortOrder += "\n--- Ship: " + s.name + "\n";
-			sortOrder += s.sortJobs(howToSort, orderToSort);
+			if (!s.fixedJobs.isEmpty()) {
+				sortOrder += "\n--- Ship: " + s.name + "\n";
+				sortOrder += s.sortJobs(howToSort, orderToSort);
 			}
 		}
 		return sortOrder;
 	}
 
-	//builds the nodes for the docks
+	// builds the nodes for the docks
 	public synchronized void getDockNode(DefaultMutableTreeNode portNode) {
 		DefaultMutableTreeNode dockNode = null;
 		DefaultMutableTreeNode shipNode = null;
@@ -482,7 +497,7 @@ public class SeaPort extends Thing {
 		return;
 	}
 
-	//builds the nodes for the ships
+	// builds the nodes for the ships
 	public void getShipNodes(DefaultMutableTreeNode portNode) {
 		DefaultMutableTreeNode cShipNode = new DefaultMutableTreeNode("Cargo Ships");
 		DefaultMutableTreeNode pShipNode = new DefaultMutableTreeNode("Passenger Ships");
@@ -519,15 +534,72 @@ public class SeaPort extends Thing {
 		return;
 	}
 
-	//builds nodes for person
+	// builds nodes for person
 	public void getPersonNodes(DefaultMutableTreeNode portNode) {
 		DefaultMutableTreeNode personNode = new DefaultMutableTreeNode("Person");
 		DefaultMutableTreeNode oneNode = null;
-		for (Person p : persons) {
+		for (Person p : personnelRoster) {
 			oneNode = new DefaultMutableTreeNode(p.toString());
 			personNode.add(oneNode);
 		}
 		portNode.add(personNode);
 	}
 
+	/**
+	 * This is a helper method that builds resources when called.
+	 */
+	synchronized public JPanel showResourceStatus() {
+
+		try {
+			pan.removeAll();
+			int size = persons.size();
+			JPanel portPan = new JPanel(new GridLayout(size, 2));
+
+			for (Person p : this.persons) {
+				JLabel nameLabel = new JLabel("Name: " + p.name);
+				JLabel skillLabel = new JLabel(" Skill: " + p.skill);
+				portPan.add(nameLabel);
+				portPan.add(skillLabel);
+			}
+
+			pan.add(portPan);
+			pan.setBorder((Border) new TitledBorder(new EtchedBorder(), "Port: " + this.name + " -Resources"));
+			pan.revalidate();
+
+		} catch (Exception e) {
+			System.out.println("In Port");
+		}
+		return pan;
+	}
+
+	// to do: add code that builds a job table
+	 public String checkResources(ArrayList<String> requirements, Object monitor) {
+		 synchronized(monitor) {
+		boolean skillAvailable = false;
+		String skillNotAvail = "";
+		for (String s : requirements) {
+			String skill = s.trim();
+			for (Person p : personnelRoster) {
+				String st = p.getSkill().trim();
+				if (skill.equalsIgnoreCase(st)&&(!p.busy)) {
+						p.setBusy(true);
+						skillAvailable = true;// accounts for more than one skill needed by job
+						skillNotAvail = "";
+						break;
+
+				} else {
+					skillAvailable = false;
+					skillNotAvail = skill;
+				}
+			}
+			if (!skillAvailable) {
+				break;
+			}
+		}
+		for (Person p : personnelRoster) {// resets all persons
+			p.setBusy(false);
+		}
+		return skillNotAvail;
+	}
+	 }
 }

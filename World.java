@@ -1,7 +1,7 @@
 
 /**
  * FileName: World.java
- * Date Due: 4/22/2018
+ * Date Due: 05/06/2018
  * Author: Michelle Decaire
  * Purpose: To take the file and build a world of ports that hold docks ships and jobs;
  * docks that hold ships; and ships that hold people.
@@ -12,7 +12,11 @@
  * to get the index, and intialize a search by index.
  * Adding children to parent array became trivial with the hashmap and sorting methods were also added
  * PROJECT THREE ADDITIONS: added nodes and changed some of the string builder methods
+ * PROJECT 4 ADDITION: added updateLogging method to get resource elements for jobs
+ * added updatePersonCount method to show original resources for the pool
  */
+
+import java.awt.GridLayout;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -24,6 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 public class World extends Thing {
@@ -37,6 +42,8 @@ public class World extends Thing {
 	private Person employee;
 	private Job job;
 	PortTime worldTime;
+	JPanel resultPan;
+	JTextArea ta;
 
 	public World() {
 		worldTime = new PortTime(System.currentTimeMillis() / 1000);
@@ -48,7 +55,11 @@ public class World extends Thing {
 
 	// reads the file, creates a scanner of one line to pass to each class
 	// instantiation.
-	public String processFile(File file, boolean searchByIndex, int search, JPanel jobBoard) {
+	public String processFile(File file, boolean searchByIndex, int search, JPanel jobBoard, JPanel resourcePanel,
+			JTextArea textArea) {
+		resultPan = resourcePanel;
+		resultPan.removeAll();
+		ta = textArea;
 		HashMap<Integer, SeaPort> portMap = new HashMap<Integer, SeaPort>();
 		HashMap<Integer, Dock> dockMap = new HashMap<Integer, Dock>();
 		HashMap<Integer, Ship> shipMap = new HashMap<Integer, Ship>();
@@ -71,7 +82,7 @@ public class World extends Thing {
 					if (scan.hasNextInt())
 						index = scan.nextInt();
 					createClasses(type, scan, name, index, portMap, dockMap, shipMap, personMap, jobMap, jobBoard);
-
+					updatePersonCount();
 				}
 			}
 
@@ -89,17 +100,20 @@ public class World extends Thing {
 	}
 
 	Ship currentShip = null;
-//creates the classes by reading the file
+	int jobCount=0;
+	// creates the classes by reading the file
 	private void createClasses(String type, Scanner scan, String name, int index, HashMap<Integer, SeaPort> portMap,
 			HashMap<Integer, Dock> dockMap, HashMap<Integer, Ship> shipMap, HashMap<Integer, Person> personMap,
 			HashMap<Integer, Job> jobMap, JPanel jobBoard) {
 		int parentIndex = scan.nextInt();
 		int shipCount = 0;
+		
 		switch (type) {
 		case "port":
-			port = new SeaPort(name, parentIndex, scan);
+			port = new SeaPort(name, parentIndex, scan, worldTime);
 			ports.add(port);
 			portMap.put(index, port);
+
 			break;
 		case "dock":
 			dock = new Dock(name, parentIndex, scan);
@@ -127,6 +141,7 @@ public class World extends Thing {
 			personMap.put(index, employee);
 			break;
 		case "job":
+			jobCount++;
 			Ship currentShip = findParent(parentIndex, shipMap);
 			job = new Job(name, parentIndex, scan, jobBoard, currentShip, shipCount);
 			addJob(job, currentShip);
@@ -138,7 +153,56 @@ public class World extends Thing {
 
 	}
 
-	//new method to have the job find its parent
+	/**
+	 * added method that shows the resource count for each port
+	 */
+	synchronized void updatePersonCount() {
+		try {
+		String portResource = "";
+		portResource+="Total Job Count: "+jobCount+"\n"
+					+"Port Resources:\n";
+		ta.setFont(new java.awt.Font("Monospaced", 1, 14));
+		for (SeaPort s : ports) {
+			portResource += s.name + ": " + Integer.toString(s.personnelRoster.size()) + "\n";
+		}
+		ta.setText(portResource);
+		ta.revalidate();
+		}catch (Exception e) {
+			System.out.println("In side Panel");
+		}
+	}
+
+	/**
+	 * added method that shows the resource pool for the jobs
+	 * this is called from the button action event and once from this class
+	 */
+	synchronized void updateLogging() {
+		
+			try {
+				int size = 0;
+				size = ports.size();
+				if (size > 3) {
+					size = size / 2;
+				}
+				else {
+					size=1;
+				}
+				resultPan.setLayout(new GridLayout(size, 3));
+				JPanel jsp = new JPanel();
+				for (SeaPort p : ports) {
+					jsp = p.showResourceStatus();
+					resultPan.add(jsp);
+
+				}
+				resultPan.revalidate();
+			} catch (Exception e) {
+				System.out.println("In World");
+			}
+		
+		
+	}
+
+	// new method to have the job find its parent
 	private Ship findParent(int parentIndex, HashMap<Integer, Ship> shipMap) {
 		Ship s = shipMap.get(parentIndex);
 		return s;
@@ -200,6 +264,7 @@ public class World extends Thing {
 
 	}
 
+	//sets the pretend time in order to sort by time
 	private Long setTime(int i) {
 
 		Random rand = new Random();
@@ -208,9 +273,6 @@ public class World extends Thing {
 		long time = now - temp;
 		return time;
 	}
-
-
-	
 
 	// returns the results for a name search
 	public String searchName(String text) {
@@ -430,12 +492,13 @@ public class World extends Thing {
 	}
 
 	/**
-	 * replaces one of the original screen builders. THis builds an array to display on a table
-	 * for all ports
+	 * replaces one of the original screen builders. THis builds an array to display
+	 * on a table for all ports
+	 * 
 	 * @return
 	 * 
 	 */
-	
+
 	public ArrayList<LinkedList<String>> buildList() {
 		LinkedList<String> s;
 		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
@@ -472,9 +535,10 @@ public class World extends Thing {
 		}
 		return al;
 	}
-	
+
 	/**
 	 * replaces the string builder for dock information
+	 * 
 	 * @param parent
 	 * @return
 	 */
@@ -502,6 +566,7 @@ public class World extends Thing {
 
 	/**
 	 * builds a list for all ships
+	 * 
 	 * @param name
 	 * @return
 	 */
@@ -535,8 +600,10 @@ public class World extends Thing {
 		}
 		return al;
 	}
+
 	/**
 	 * builds a list for passenger ships to display on table
+	 * 
 	 * @param name
 	 * @return
 	 */
@@ -576,6 +643,7 @@ public class World extends Thing {
 
 	/**
 	 * builds a list for cargo ships
+	 * 
 	 * @param parent
 	 * @return
 	 */
@@ -613,6 +681,7 @@ public class World extends Thing {
 
 	/**
 	 * builds a list of the ships in que
+	 * 
 	 * @param parent
 	 * @return
 	 */
@@ -646,8 +715,10 @@ public class World extends Thing {
 		}
 		return al;
 	}
+
 	/**
 	 * builds a list of persons belonging to the parent port
+	 * 
 	 * @param parent
 	 * @return
 	 */
@@ -673,20 +744,21 @@ public class World extends Thing {
 
 	/**
 	 * builds a list from the ship list that was not changed by jobs
+	 * 
 	 * @param parent
 	 * @return
 	 */
 	public ArrayList<LinkedList<String>> buildJobList(String parent) {
 		LinkedList<String> s;
 		ArrayList<LinkedList<String>> al = new ArrayList<LinkedList<String>>();
-		for(SeaPort p: ports) {
+		for (SeaPort p : ports) {
 			s = new LinkedList<String>();
-			for(Ship ship: p.ships) {
-				Ship rightShip= null;
-				if(ship.name.equals(parent)) {
-					rightShip=ship;
-					if (rightShip.getPort().name.equals(p.name)){
-						for(Job j: rightShip.fixedJobs) {
+			for (Ship ship : p.ships) {
+				Ship rightShip = null;
+				if (ship.name.equals(parent)) {
+					rightShip = ship;
+					if (rightShip.getPort().name.equals(p.name)) {
+						for (Job j : rightShip.fixedJobs) {
 							s.add(p.name);
 							s.add(rightShip.name);
 							s.add(j.name);
@@ -695,7 +767,7 @@ public class World extends Thing {
 							s = new LinkedList<String>();
 
 						}
-						
+
 						break;
 					}
 				}
@@ -703,7 +775,5 @@ public class World extends Thing {
 		}
 		return al;
 	}
-
-	
 
 }

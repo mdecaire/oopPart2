@@ -1,10 +1,11 @@
 import java.util.Date;
 
 /**
- * File Name: PortTime.java Date Due: 3/25/2018 author: Michelle Decaire
+ * File Name: PortTime.java Date Due: 05/06/2018 author: Michelle Decaire
  * Purpose: to establish time stamps of world and ships. Changed code to accept
  * a long int for time...time is randomly generated in the world
  * NO CHANGES MADE IN PROJECT THREE
+ *  NO CHANGES MADE IN PROJECT FOUR
  */
 public class PortTime {
 	long time;

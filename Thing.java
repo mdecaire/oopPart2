@@ -1,13 +1,14 @@
 
 /**
  * File Name: Thing.java
- * Due Date:4/8/2018
+ * Due Date:05/06/2018
  * Author: Michelle DeCaire
  * Purpose: Parent Class of most classes
  * 	defines the index name parent and toString base methods.
  * PROJECT TWO ADDITIONS: index taken out, accepts name as string 
  * and changed comparator to sort by name.
  * No additions or changes in Project 3
+ *  NO CHANGES MADE IN PROJECT FOUR
  */
 
 
